@@ -60,38 +60,60 @@ pipeline {
 stage('Build Docker Images') {
     steps {
         sh '''
+            set -e
+
+            echo "=========================================="
             echo "Building Auth Service..."
+            echo "=========================================="
+
             docker build \
               -t ${AUTH_IMAGE}:${IMAGE_TAG} \
               -f backend/authService/Dockerfile \
               backend/authService
 
+
+            echo "=========================================="
             echo "Building Streaming Service..."
+            echo "=========================================="
+
             docker build \
               -t ${STREAM_IMAGE}:${IMAGE_TAG} \
               -f backend/streamingService/Dockerfile \
-              backend/streamingService
+              backend
 
+
+            echo "=========================================="
             echo "Building Admin Service..."
+            echo "=========================================="
+
             docker build \
               -t ${ADMIN_IMAGE}:${IMAGE_TAG} \
               -f backend/adminService/Dockerfile \
-              backend/adminService
+              backend
 
+
+            echo "=========================================="
             echo "Building Chat Service..."
+            echo "=========================================="
+
             docker build \
               -t ${CHAT_IMAGE}:${IMAGE_TAG} \
               -f backend/chatService/Dockerfile \
-              backend/chatService
+              backend
 
+
+            echo "=========================================="
             echo "Building Frontend..."
+            echo "=========================================="
+
             docker build \
               -t ${FRONTEND_IMAGE}:${IMAGE_TAG} \
               -f frontend/Dockerfile \
               frontend
 
+
             echo "=========================================="
-            echo "All Docker images built successfully."
+            echo "All Docker images built successfully!"
             echo "=========================================="
 
             docker images | grep streaming-
