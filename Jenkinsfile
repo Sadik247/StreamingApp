@@ -57,45 +57,47 @@ pipeline {
             }
         }
 
-        stage('Build Docker Images') {
-            steps {
-                sh '''
-                    echo "Building Auth Service..."
-                    docker build \
-                      -t ${AUTH_IMAGE}:${IMAGE_TAG} \
-                      -f backend/authService/Dockerfile \
-                      .
+stage('Build Docker Images') {
+    steps {
+        sh '''
+            echo "Building Auth Service..."
+            docker build \
+              -t ${AUTH_IMAGE}:${IMAGE_TAG} \
+              -f backend/authService/Dockerfile \
+              backend/authService
 
-                    echo "Building Streaming Service..."
-                    docker build \
-                      -t ${STREAM_IMAGE}:${IMAGE_TAG} \
-                      -f backend/streamingService/Dockerfile \
-                      .
+            echo "Building Streaming Service..."
+            docker build \
+              -t ${STREAM_IMAGE}:${IMAGE_TAG} \
+              -f backend/streamingService/Dockerfile \
+              backend/streamingService
 
-                    echo "Building Admin Service..."
-                    docker build \
-                      -t ${ADMIN_IMAGE}:${IMAGE_TAG} \
-                      -f backend/adminService/Dockerfile \
-                      .
+            echo "Building Admin Service..."
+            docker build \
+              -t ${ADMIN_IMAGE}:${IMAGE_TAG} \
+              -f backend/adminService/Dockerfile \
+              backend/adminService
 
-                    echo "Building Chat Service..."
-                    docker build \
-                      -t ${CHAT_IMAGE}:${IMAGE_TAG} \
-                      -f backend/chatService/Dockerfile \
-                      .
+            echo "Building Chat Service..."
+            docker build \
+              -t ${CHAT_IMAGE}:${IMAGE_TAG} \
+              -f backend/chatService/Dockerfile \
+              backend/chatService
 
-                    echo "Building Frontend..."
-                    docker build \
-                      -t ${FRONTEND_IMAGE}:${IMAGE_TAG} \
-                      -f frontend/Dockerfile \
-                      .
+            echo "Building Frontend..."
+            docker build \
+              -t ${FRONTEND_IMAGE}:${IMAGE_TAG} \
+              -f frontend/Dockerfile \
+              frontend
 
-                    echo "All Docker images built successfully."
+            echo "=========================================="
+            echo "All Docker images built successfully."
+            echo "=========================================="
 
-                    docker images | grep streaming-
-                '''
-            }
-        }
+            docker images | grep streaming-
+        '''
+    }
+}
 
         stage('Push Images to ECR') {
             steps {
