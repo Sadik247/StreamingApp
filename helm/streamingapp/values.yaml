@@ -1,0 +1,57 @@
+namespace: streamingapp
+
+services:
+
+  auth:
+    name: auth
+    image: 700800569732.dkr.ecr.us-east-1.amazonaws.com/streaming-auth
+    tag: "1.0.0"
+    replicas: 2
+    port: 3001
+
+  streaming:
+    name: streaming
+    image: 700800569732.dkr.ecr.us-east-1.amazonaws.com/streaming-stream
+    tag: "1.0.0"
+    replicas: 2
+    port: 3002
+
+  admin:
+    name: admin
+    image: 700800569732.dkr.ecr.us-east-1.amazonaws.com/streaming-admin
+    tag: "1.0.0"
+    replicas: 2
+    port: 3003
+
+  chat:
+    name: chat
+    image: 700800569732.dkr.ecr.us-east-1.amazonaws.com/streaming-chat
+    tag: "1.0.0"
+    replicas: 2
+    port: 3004
+
+  frontend:
+    name: frontend
+    image: 700800569732.dkr.ecr.us-east-1.amazonaws.com/streaming-frontend
+    tag: "1.0.0"
+    replicas: 2
+    port: 80
+
+mongo:
+  name: mongo
+  image: mongo:7
+  port: 27017
+  storageSize: 5Gi
+
+ingress:
+  enabled: true
+  className: nginx
+  host: streamingapp.local
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

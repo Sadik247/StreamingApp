@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.services.auth.name }}
+  labels:
+    {{- include "streamingapp.labels" . | nindent 4 }}
+    app: {{ .Values.services.auth.name }}
+spec:
+  replicas: {{ .Values.services.auth.replicas }}
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+
+  selector:
+    matchLabels:
+      app: {{ .Values.services.auth.name }}
+
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.services.auth.name }}
+
+    spec:
+      containers:
+        - name: auth
+          image: "{{ .Values.services.auth.image }}:{{ .Values.services.auth.tag }}"
+          imagePullPolicy: Always
+
+          ports:
+            - name: http
+              containerPort: {{ .Values.services.auth.port }}
+              protocol: TCP
+
+          env:
+            - name: PORT
+              value: "{{ .Values.services.auth.port }}"
+
+            - name: MONGO_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "streamingapp.fullname" . }}-config
+                  key: MONGO_URI
+
+            - name: CLIENT_URLS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "streamingapp.fullname" . }}-config
+                  key: CLIENT_URLS
+
+            - name: AWS_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "streamingapp.fullname" . }}-config
+                  key: AWS_REGION
+
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "streamingapp.fullname" . }}-secret
+                  key: JWT_SECRET
+
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "streamingapp.fullname" . }}-secret
+                  key: AWS_ACCESS_KEY_ID
+
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "streamingapp.fullname" . }}-secret
+                  key: AWS_SECRET_ACCESS_KEY
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

@@ -1,0 +1,60 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "streamingapp.fullname" . }}-ingress
+  labels:
+    {{- include "streamingapp.labels" . | nindent 4 }}
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+
+          - path: /api/auth
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Values.services.auth.name }}
+                port:
+                  number: {{ .Values.services.auth.port }}
+
+          - path: /api/streaming
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Values.services.streaming.name }}
+                port:
+                  number: {{ .Values.services.streaming.port }}
+
+          - path: /api/admin
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Values.services.admin.name }}
+                port:
+                  number: {{ .Values.services.admin.port }}
+
+          - path: /api/chat
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Values.services.chat.name }}
+                port:
+                  number: {{ .Values.services.chat.port }}
+
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Values.services.frontend.name }}
+                port:
+                  number: {{ .Values.services.frontend.port }}
+{{- end }}

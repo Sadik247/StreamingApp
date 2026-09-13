@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.services.admin.name }}
+  labels:
+    {{- include "streamingapp.labels" . | nindent 4 }}
+    app: {{ .Values.services.admin.name }}
+
+spec:
+  replicas: {{ .Values.services.admin.replicas }}
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+
+  selector:
+    matchLabels:
+      app: {{ .Values.services.admin.name }}
+
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.services.admin.name }}
+
+    spec:
+      containers:
+        - name: admin
+          image: "{{ .Values.services.admin.image }}:{{ .Values.services.admin.tag }}"
+          imagePullPolicy: Always
+
+          ports:
+            - name: http
+              containerPort: {{ .Values.services.admin.port }}
+              protocol: TCP
+
+          env:
+            - name: PORT
+              value: "{{ .Values.services.admin.port }}"
+
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "streamingapp.fullname" . }}-secret
+                  key: MONGO_URI
+
+            - name: CLIENT_URLS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "streamingapp.fullname" . }}-config
+                  key: CLIENT_URLS
+
+            - name: AWS_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "streamingapp.fullname" . }}-config
+                  key: AWS_REGION
+
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "streamingapp.fullname" . }}-secret
+                  key: AWS_ACCESS_KEY_ID
+
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "streamingapp.fullname" . }}-secret
+                  key: AWS_SECRET_ACCESS_KEY
+
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
