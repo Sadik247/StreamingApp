@@ -39,10 +39,10 @@ spec:
               value: "{{ .Values.services.streaming.port }}"
 
             - name: MONGO_URI
-            valueFrom:
+              valueFrom:
                 secretKeyRef:
-                name: {{ include "streamingapp.fullname" . }}-secret
-                key: MONGO_URI
+                  name: {{ include "streamingapp.fullname" . }}-secret
+                  key: MONGO_URI
 
             - name: CLIENT_URLS
               valueFrom:

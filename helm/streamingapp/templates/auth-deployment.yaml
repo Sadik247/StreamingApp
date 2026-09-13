@@ -40,8 +40,8 @@ spec:
 
             - name: MONGO_URI
               valueFrom:
-                configMapKeyRef:
-                  name: {{ include "streamingapp.fullname" . }}-config
+                secretKeyRef:
+                  name: {{ include "streamingapp.fullname" . }}-secret
                   key: MONGO_URI
 
             - name: CLIENT_URLS
