@@ -1,0 +1,214 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION   = 'us-east-1'
+        CLUSTER_NAME = 'streamingapp-eks'
+        RELEASE_NAME = 'streamingapp'
+        NAMESPACE    = 'streamingapp'
+        CHART_PATH   = 'helm/streamingapp'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                git branch: 'container-orchestration',
+                    url: 'https://github.com/Sadik247/StreamingApp.git'
+            }
+        }
+
+        stage('Configure EKS Access') {
+            steps {
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-ecr-credentials-sadik'
+                ]]) {
+                    sh '''
+                        set -e
+
+                        echo "=== AWS Identity ==="
+                        aws sts get-caller-identity
+
+                        echo ""
+                        echo "=== Configure EKS kubeconfig ==="
+
+                        aws eks update-kubeconfig \
+                          --name "$CLUSTER_NAME" \
+                          --region "$AWS_REGION"
+
+                        echo ""
+                        echo "=== Kubernetes Nodes ==="
+
+                        kubectl get nodes -o wide
+                    '''
+                }
+            }
+        }
+
+        stage('Create Namespace') {
+            steps {
+                sh '''
+                    set -e
+
+                    echo "=== Creating Namespace ==="
+
+                    kubectl create namespace "$NAMESPACE" \
+                      --dry-run=client \
+                      -o yaml | kubectl apply -f -
+
+                    echo ""
+                    echo "=== Namespace ==="
+
+                    kubectl get namespace "$NAMESPACE"
+                '''
+            }
+        }
+
+        stage('Create Application Secret') {
+            steps {
+                withCredentials([
+                    string(
+                        credentialsId: 'streamingapp-jwt-secret',
+                        variable: 'JWT_SECRET'
+                    ),
+                    string(
+                        credentialsId: 'streamingapp-mongo-uri',
+                        variable: 'MONGO_URI'
+                    ),
+                    [
+                        $class: 'AmazonWebServicesCredentialsBinding',
+                        credentialsId: 'aws-ecr-credentials-sadik'
+                    ]
+                ]) {
+                    sh '''
+                        set -e
+
+                        echo "=== Creating/Updating Kubernetes Secret ==="
+
+                        kubectl create secret generic streamingapp-secret \
+                          --namespace "$NAMESPACE" \
+                          --from-literal=JWT_SECRET="$JWT_SECRET" \
+                          --from-literal=MONGO_URI="$MONGO_URI" \
+                          --from-literal=AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" \
+                          --from-literal=AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" \
+                          --dry-run=client \
+                          -o yaml | kubectl apply -f -
+
+                        echo ""
+                        echo "Kubernetes Secret created/updated successfully."
+
+                        echo ""
+                        echo "=== Secret Verification ==="
+
+                        kubectl get secret streamingapp-secret \
+                          -n "$NAMESPACE"
+                    '''
+                }
+            }
+        }
+
+        stage('Helm Lint') {
+            steps {
+                sh '''
+                    set -e
+
+                    echo "=== Helm Version ==="
+                    helm version
+
+                    echo ""
+                    echo "=== Helm Lint ==="
+
+                    helm lint "$CHART_PATH"
+                '''
+            }
+        }
+
+        stage('Deploy Application') {
+            steps {
+                sh '''
+                    set -e
+
+                    echo "=== Deploying StreamingApp ==="
+
+                    helm upgrade --install "$RELEASE_NAME" "$CHART_PATH" \
+                      --namespace "$NAMESPACE" \
+                      --create-namespace \
+                      --set-string secret.existingSecret=streamingapp-secret \
+                      --wait \
+                      --timeout 10m
+
+                    echo ""
+                    echo "=== Helm Release ==="
+
+                    helm list -n "$NAMESPACE"
+                '''
+            }
+        }
+
+        stage('Verify Deployments') {
+            steps {
+                sh '''
+                    set -e
+
+                    echo "=== Deployments ==="
+
+                    kubectl get deployments \
+                      -n "$NAMESPACE"
+
+                    echo ""
+                    echo "=== Pods ==="
+
+                    kubectl get pods \
+                      -n "$NAMESPACE" \
+                      -o wide
+
+                    echo ""
+                    echo "=== Services ==="
+
+                    kubectl get services \
+                      -n "$NAMESPACE"
+                '''
+            }
+        }
+
+        stage('Verify Ingress') {
+            steps {
+                sh '''
+                    set -e
+
+                    echo "=== Ingress ==="
+
+                    kubectl get ingress \
+                      -n "$NAMESPACE" \
+                      -o wide
+
+                    echo ""
+                    echo "=== Ingress Details ==="
+
+                    kubectl describe ingress \
+                      -n "$NAMESPACE"
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '''
+            ==============================================
+            StreamingApp EKS deployment completed.
+            ==============================================
+            '''
+        }
+
+        failure {
+            echo '''
+            ==============================================
+            StreamingApp EKS deployment failed.
+            Check the Jenkins console output.
+            ==============================================
+            '''
+        }
+    }
+}

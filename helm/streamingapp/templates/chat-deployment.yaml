@@ -42,7 +42,7 @@ spec:
             - name: MONGO_URI
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "streamingapp.fullname" . }}-secret
+                  name: {{ .Values.secret.existingSecret | default (printf "%s-secret" (include "streamingapp.fullname" .)) }}
                   key: MONGO_URI
 
             - name: CLIENT_URLS
@@ -54,7 +54,7 @@ spec:
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "streamingapp.fullname" . }}-secret
+                  name: {{ .Values.secret.existingSecret | default (printf "%s-secret" (include "streamingapp.fullname" .)) }}
                   key: JWT_SECRET
 
           readinessProbe:

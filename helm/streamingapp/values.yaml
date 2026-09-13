@@ -48,6 +48,9 @@ ingress:
   className: nginx
   host: streamingapp.local
 
+secret:
+  existingSecret: ""
+
 resources:
   requests:
     cpu: 100m

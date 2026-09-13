@@ -41,7 +41,7 @@ spec:
             - name: MONGO_URI
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "streamingapp.fullname" . }}-secret
+                  name: {{ .Values.secret.existingSecret | default (printf "%s-secret" (include "streamingapp.fullname" .)) }}
                   key: MONGO_URI
 
             - name: CLIENT_URLS
@@ -77,19 +77,19 @@ spec:
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "streamingapp.fullname" . }}-secret
+                  name: {{ .Values.secret.existingSecret | default (printf "%s-secret" (include "streamingapp.fullname" .)) }}
                   key: JWT_SECRET
 
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "streamingapp.fullname" . }}-secret
+                  name: {{ .Values.secret.existingSecret | default (printf "%s-secret" (include "streamingapp.fullname" .)) }}
                   key: AWS_ACCESS_KEY_ID
 
             - name: AWS_SECRET_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "streamingapp.fullname" . }}-secret
+                  name: {{ .Values.secret.existingSecret | default (printf "%s-secret" (include "streamingapp.fullname" .)) }}
                   key: AWS_SECRET_ACCESS_KEY
 
           readinessProbe:
