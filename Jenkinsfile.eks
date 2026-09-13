@@ -48,20 +48,32 @@ pipeline {
 
         stage('Create Namespace') {
             steps {
-                sh '''
-                    set -e
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-ecr-credentials-sadik'
+                ]]) {
+                    sh '''
+                        set -e
 
-                    echo "=== Creating Namespace ==="
+                        echo "=== Configure EKS Access ==="
 
-                    kubectl create namespace "$NAMESPACE" \
-                      --dry-run=client \
-                      -o yaml | kubectl apply -f -
+                        aws eks update-kubeconfig \
+                          --name "$CLUSTER_NAME" \
+                          --region "$AWS_REGION"
 
-                    echo ""
-                    echo "=== Namespace ==="
+                        echo ""
+                        echo "=== Creating Namespace ==="
 
-                    kubectl get namespace "$NAMESPACE"
-                '''
+                        kubectl create namespace "$NAMESPACE" \
+                          --dry-run=client \
+                          -o yaml | kubectl apply -f -
+
+                        echo ""
+                        echo "=== Namespace ==="
+
+                        kubectl get namespace "$NAMESPACE"
+                    '''
+                }
             }
         }
 
@@ -84,6 +96,13 @@ pipeline {
                     sh '''
                         set -e
 
+                        echo "=== Configure EKS Access ==="
+
+                        aws eks update-kubeconfig \
+                          --name "$CLUSTER_NAME" \
+                          --region "$AWS_REGION"
+
+                        echo ""
                         echo "=== Creating/Updating Kubernetes Secret ==="
 
                         kubectl create secret generic streamingapp-secret \
@@ -114,6 +133,7 @@ pipeline {
                     set -e
 
                     echo "=== Helm Version ==="
+
                     helm version
 
                     echo ""
@@ -126,69 +146,105 @@ pipeline {
 
         stage('Deploy Application') {
             steps {
-                sh '''
-                    set -e
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-ecr-credentials-sadik'
+                ]]) {
+                    sh '''
+                        set -e
 
-                    echo "=== Deploying StreamingApp ==="
+                        echo "=== Configure EKS Access ==="
 
-                    helm upgrade --install "$RELEASE_NAME" "$CHART_PATH" \
-                      --namespace "$NAMESPACE" \
-                      --create-namespace \
-                      --set-string secret.existingSecret=streamingapp-secret \
-                      --wait \
-                      --timeout 10m
+                        aws eks update-kubeconfig \
+                          --name "$CLUSTER_NAME" \
+                          --region "$AWS_REGION"
 
-                    echo ""
-                    echo "=== Helm Release ==="
+                        echo ""
+                        echo "=== Deploying StreamingApp ==="
 
-                    helm list -n "$NAMESPACE"
-                '''
+                        helm upgrade --install "$RELEASE_NAME" "$CHART_PATH" \
+                          --namespace "$NAMESPACE" \
+                          --create-namespace \
+                          --set-string secret.existingSecret=streamingapp-secret \
+                          --wait \
+                          --timeout 10m
+
+                        echo ""
+                        echo "=== Helm Release ==="
+
+                        helm list -n "$NAMESPACE"
+                    '''
+                }
             }
         }
 
         stage('Verify Deployments') {
             steps {
-                sh '''
-                    set -e
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-ecr-credentials-sadik'
+                ]]) {
+                    sh '''
+                        set -e
 
-                    echo "=== Deployments ==="
+                        echo "=== Configure EKS Access ==="
 
-                    kubectl get deployments \
-                      -n "$NAMESPACE"
+                        aws eks update-kubeconfig \
+                          --name "$CLUSTER_NAME" \
+                          --region "$AWS_REGION"
 
-                    echo ""
-                    echo "=== Pods ==="
+                        echo ""
+                        echo "=== Deployments ==="
 
-                    kubectl get pods \
-                      -n "$NAMESPACE" \
-                      -o wide
+                        kubectl get deployments \
+                          -n "$NAMESPACE"
 
-                    echo ""
-                    echo "=== Services ==="
+                        echo ""
+                        echo "=== Pods ==="
 
-                    kubectl get services \
-                      -n "$NAMESPACE"
-                '''
+                        kubectl get pods \
+                          -n "$NAMESPACE" \
+                          -o wide
+
+                        echo ""
+                        echo "=== Services ==="
+
+                        kubectl get services \
+                          -n "$NAMESPACE"
+                    '''
+                }
             }
         }
 
         stage('Verify Ingress') {
             steps {
-                sh '''
-                    set -e
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-ecr-credentials-sadik'
+                ]]) {
+                    sh '''
+                        set -e
 
-                    echo "=== Ingress ==="
+                        echo "=== Configure EKS Access ==="
 
-                    kubectl get ingress \
-                      -n "$NAMESPACE" \
-                      -o wide
+                        aws eks update-kubeconfig \
+                          --name "$CLUSTER_NAME" \
+                          --region "$AWS_REGION"
 
-                    echo ""
-                    echo "=== Ingress Details ==="
+                        echo ""
+                        echo "=== Ingress ==="
 
-                    kubectl describe ingress \
-                      -n "$NAMESPACE"
-                '''
+                        kubectl get ingress \
+                          -n "$NAMESPACE" \
+                          -o wide
+
+                        echo ""
+                        echo "=== Ingress Details ==="
+
+                        kubectl describe ingress \
+                          -n "$NAMESPACE"
+                    '''
+                }
             }
         }
     }
